@@ -5,8 +5,10 @@ import logging.handlers
 import socket
 import subprocess
 import shlex
-from subprocess import Popen
 import time
+from subprocess import Popen
+from functools import wraps
+from sqlite3 import OperationalError
 
 from sparts.tasks.thrift import NBServerTask
 from sparts.tasks.thrift import ThriftHandlerTask
@@ -39,6 +41,25 @@ class TsdNBServerTask(NBServerTask):
     DEFAULT_PORT = 9090
     DEFAULT_HOST = '0.0.0.0'
 
+def address_check(method):
+    @wraps(method)
+    def decorator(self, mac):
+        if not self._machine_controls.get(mac):
+            # can not shape while not exist
+            return TrafficControlRc(
+                code=ReturnCode.INVALID_ADDRESS,
+                message="Invalid Address {mac:{0}}".format(mac))
+
+        mc = self._machine_controls[mac]
+
+        try:
+            socket.inet_aton(mc['ip'])
+        except Exception as e:
+            return TrafficControlRc(
+                code=ReturnCode.INVALID_ADDRESS,
+                message="Invalid IP {0} for mac:{1}".format(mc['ip'], mac))
+        return method(self, mac, mc)
+    return decorator
 
 class TsdThriftHandlerTask(ThriftHandlerTask):
     DEFAULT_LAN = 'wlan0'
@@ -188,8 +209,10 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
         for result in results:
             mac = result['mac']
             self._machine_controls[mac] = {
+                'mac': result['mac'],
                 'ip': result['ip'],
                 'profile_name': result['profile_name'],
+                'is_capturing': result['is_capturing'],
                 'is_shaping': result['is_shaping'],
                 'online': result['online'],
                 'last_update_time': result['last_time']
@@ -199,6 +222,8 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
             mc = self._machine_controls[mac]
             if mc['is_shaping']:
                 self.shapeMachine(mac)
+            if mc['is_capturing']:
+                self.startCapture(mac)
 
     def run_cmd(self, cmd):
         self.logger.info("Running {}".format(cmd))
@@ -247,6 +272,7 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
             state=MachineControlState(
                 ip=state.get('ip'),
                 profile_name=state.get('profile_name'),
+                is_capturing=state.get('is_capturing'),
                 is_shaping=state.get('is_shaping'),
                 online=state.get('online'),
                 last_update_time=state.get('last_update_time'),
@@ -268,25 +294,27 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
             if self._machine_controls.get(mac):
                 # already has the mac addr
                 mc = self._machine_controls[mac]
-                mc['online'] = True
+                mc['mac'] = mac
                 mc['ip'] = ip
+                mc['online'] = True
                 mc['last_update_time'] = now
-                self.db_task.queue.put((
-                    (mac, ip, mc.get('profile_name'), mc['is_shaping'], mc['online'], now),
-                    'add_mcontrol'))
-                new_machine_controls[mac] = mc
+
+                # add to new_machine_controls & remove old mapping
+                new_machine_controls[mac] = mc 
+                self._update_mcontrol(mc)
                 del self._machine_controls[mac]
             else:
                 # add the shaping
-                self.db_task.queue.put((
-                    (mac, ip, None, False, True, now), 
-                    'add_mcontrol'))
-                new_machine_controls[mac] = {
+                mc = {
+                    "mac": mac,
                     "ip": ip,
+                    "is_capturing": False,
                     "is_shaping": False,
                     "online": True,
                     "last_update_time": now
                 }
+                new_machine_controls[mac] = mc
+                self._update_mcontrol(mc)
 
         for mac in self._machine_controls:
             self.unshapeMachine(mac)
@@ -298,9 +326,7 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
             else:
                 mc['online'] = False
                 mc['ip'] = ''
-                self.db_task.queue.put((
-                    (mac, mc['ip'], mc.get('profile_name'), mc['is_shaping'], mc['online'], mc["last_update_time"]),
-                    'add_mcontrol'))
+                self._update_mcontrol(mc)
                 new_machine_controls[mac] = mc
             
         self._machine_controls = new_machine_controls
@@ -314,17 +340,14 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
         if not self._machine_controls.get(update_mc.mac):
             # can not update while not exist
             return TrafficControlRc(
-                code=ReturnCode.INVALID_IP,
+                code=ReturnCode.INVALID_ADDRESS,
                 message="Invalid Address {mac:{0}, ip:{1}}".format(update_mc.mac, update_mc.state.ip))
 
         mc = self._machine_controls[update_mc.mac]
 
         # update profile_name only for now
         mc['profile_name'] = update_mc.state.profile_name
-
-        self.db_task.queue.put((
-            (update_mc.mac, mc['ip'], mc['profile_name'], mc['is_shaping'], mc['online'], mc['last_update_time']),
-            'add_mcontrol'))
+        self._update_mcontrol(mc)
 
         # update profiles while shaping
         if mc['is_shaping']:
@@ -332,22 +355,8 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
 
         return TrafficControlRc(code=ReturnCode.OK)
 
-    def shapeMachine(self, mac):
-        if not self._machine_controls.get(mac):
-            # can not shape while not exist
-            return TrafficControlRc(
-                code=ReturnCode.INVALID_IP,
-                message="Invalid Address {mac:{0}}".format(mac))
-
-        mc = self._machine_controls[mac]
-
-        try:
-            socket.inet_aton(mc['ip'])
-        except Exception as e:
-            return TrafficControlRc(
-                code=ReturnCode.INVALID_IP,
-                message="Invalid IP {}".format(mc['ip']))
-
+    @address_check
+    def shapeMachine(self, mac, mc):
         # remove old interface
         if self._machine_shapings.get(mac):
             # update shapings
@@ -388,6 +397,7 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
             self._unshape_interface(new_id, self.wan, mc['ip'], setting.up)
             return tcrc
         mc['is_shaping'] = True
+        self._update_mcontrol(mc)
 
         return TrafficControlRc(code=ReturnCode.OK)
 
@@ -414,7 +424,26 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
         """
         raise NotImplementedError('Subclass should implement this')
 
+    def _update_mcontrol(self, mc):
+        self.db_task.queue.put((
+            (mc['mac'], mc.get('ip'), mc.get('profile_name'), mc['is_capturing'], mc['is_shaping'], mc['online'], mc["last_update_time"]),
+            'add_mcontrol'))
 
+    @address_check
+    def startCapture(self, mac, mc):
+        self.logger.info("startCapture mac:{0}".format(mac))
+        mc['is_capturing'] = True
+        self._update_mcontrol(mc)
+
+        return TrafficControlRc(code=ReturnCode.OK)
+
+    @address_check
+    def stopCapture(self, mac, mc):
+        self.logger.info("stopCapture mac:{0}".format(mac))
+        mc['is_capturing'] = False
+        self._update_mcontrol(mc)
+
+        return TrafficControlRc(code=ReturnCode.OK)
 
 
 

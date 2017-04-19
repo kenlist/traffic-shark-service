@@ -18,31 +18,37 @@ except:
 
 class ReturnCode:
   OK = 0
-  NETLINK_HTB_ERROR = 1
-  UNKNOWN_HTB_ERROR = 2
-  NETLINK_NETEM_ERROR = 3
-  UNKNOWN_NETEM_ERROR = 4
-  NETLINK_FW_ERROR = 5
-  UNKNOWN_FW_ERROR = 6
+  INVALID_ADDRESS = 1
+  ID_EXHAUST = 2
+  NETLINK_HTB_ERROR = 3
+  UNKNOWN_HTB_ERROR = 4
+  NETLINK_NETEM_ERROR = 5
+  UNKNOWN_NETEM_ERROR = 6
+  NETLINK_FW_ERROR = 7
+  UNKNOWN_FW_ERROR = 8
 
   _VALUES_TO_NAMES = {
     0: "OK",
-    1: "NETLINK_HTB_ERROR",
-    2: "UNKNOWN_HTB_ERROR",
-    3: "NETLINK_NETEM_ERROR",
-    4: "UNKNOWN_NETEM_ERROR",
-    5: "NETLINK_FW_ERROR",
-    6: "UNKNOWN_FW_ERROR",
+    1: "INVALID_ADDRESS",
+    2: "ID_EXHAUST",
+    3: "NETLINK_HTB_ERROR",
+    4: "UNKNOWN_HTB_ERROR",
+    5: "NETLINK_NETEM_ERROR",
+    6: "UNKNOWN_NETEM_ERROR",
+    7: "NETLINK_FW_ERROR",
+    8: "UNKNOWN_FW_ERROR",
   }
 
   _NAMES_TO_VALUES = {
     "OK": 0,
-    "NETLINK_HTB_ERROR": 1,
-    "UNKNOWN_HTB_ERROR": 2,
-    "NETLINK_NETEM_ERROR": 3,
-    "UNKNOWN_NETEM_ERROR": 4,
-    "NETLINK_FW_ERROR": 5,
-    "UNKNOWN_FW_ERROR": 6,
+    "INVALID_ADDRESS": 1,
+    "ID_EXHAUST": 2,
+    "NETLINK_HTB_ERROR": 3,
+    "UNKNOWN_HTB_ERROR": 4,
+    "NETLINK_NETEM_ERROR": 5,
+    "UNKNOWN_NETEM_ERROR": 6,
+    "NETLINK_FW_ERROR": 7,
+    "UNKNOWN_FW_ERROR": 8,
   }
 
 
@@ -740,6 +746,7 @@ class MachineControlState:
   Attributes:
    - ip
    - profile_name
+   - is_capturing
    - is_shaping
    - online
    - last_update_time
@@ -749,14 +756,16 @@ class MachineControlState:
     None, # 0
     (1, TType.STRING, 'ip', None, None, ), # 1
     (2, TType.STRING, 'profile_name', None, None, ), # 2
-    (3, TType.BOOL, 'is_shaping', None, None, ), # 3
-    (4, TType.BOOL, 'online', None, None, ), # 4
-    (5, TType.I64, 'last_update_time', None, None, ), # 5
+    (3, TType.BOOL, 'is_capturing', None, None, ), # 3
+    (4, TType.BOOL, 'is_shaping', None, None, ), # 4
+    (5, TType.BOOL, 'online', None, None, ), # 5
+    (6, TType.I64, 'last_update_time', None, None, ), # 6
   )
 
-  def __init__(self, ip=None, profile_name=None, is_shaping=None, online=None, last_update_time=None,):
+  def __init__(self, ip=None, profile_name=None, is_capturing=None, is_shaping=None, online=None, last_update_time=None,):
     self.ip = ip
     self.profile_name = profile_name
+    self.is_capturing = is_capturing
     self.is_shaping = is_shaping
     self.online = online
     self.last_update_time = last_update_time
@@ -782,15 +791,20 @@ class MachineControlState:
           iprot.skip(ftype)
       elif fid == 3:
         if ftype == TType.BOOL:
-          self.is_shaping = iprot.readBool();
+          self.is_capturing = iprot.readBool();
         else:
           iprot.skip(ftype)
       elif fid == 4:
         if ftype == TType.BOOL:
-          self.online = iprot.readBool();
+          self.is_shaping = iprot.readBool();
         else:
           iprot.skip(ftype)
       elif fid == 5:
+        if ftype == TType.BOOL:
+          self.online = iprot.readBool();
+        else:
+          iprot.skip(ftype)
+      elif fid == 6:
         if ftype == TType.I64:
           self.last_update_time = iprot.readI64();
         else:
@@ -813,16 +827,20 @@ class MachineControlState:
       oprot.writeFieldBegin('profile_name', TType.STRING, 2)
       oprot.writeString(self.profile_name)
       oprot.writeFieldEnd()
+    if self.is_capturing is not None:
+      oprot.writeFieldBegin('is_capturing', TType.BOOL, 3)
+      oprot.writeBool(self.is_capturing)
+      oprot.writeFieldEnd()
     if self.is_shaping is not None:
-      oprot.writeFieldBegin('is_shaping', TType.BOOL, 3)
+      oprot.writeFieldBegin('is_shaping', TType.BOOL, 4)
       oprot.writeBool(self.is_shaping)
       oprot.writeFieldEnd()
     if self.online is not None:
-      oprot.writeFieldBegin('online', TType.BOOL, 4)
+      oprot.writeFieldBegin('online', TType.BOOL, 5)
       oprot.writeBool(self.online)
       oprot.writeFieldEnd()
     if self.last_update_time is not None:
-      oprot.writeFieldBegin('last_update_time', TType.I64, 5)
+      oprot.writeFieldBegin('last_update_time', TType.I64, 6)
       oprot.writeI64(self.last_update_time)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()

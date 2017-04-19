@@ -8,21 +8,22 @@ class SQLiteManager(object):
     MC_CREATE_QUERY = \
         'CREATE TABLE IF NOT EXISTS MachineControls('\
         'mac VARCHAR PRIMARY KEY NOT NULL, ip VARCHAR, '\
-        'profile_name VARCHAR, '\
+        'profile_name VARCHAR, is_capturing BOOL,'\
         'is_shaping BOOL, online BOOL, '\
         'last_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, '\
         'FOREIGN KEY (profile_name) REFERENCES `NetworkProfiles`(name))'
     MC_INSERT_WITHTIME_QUERY = \
-        'INSERT OR REPLACE INTO MachineControls values (?, ?, ?, ?, ?, ?)'
+        'INSERT OR REPLACE INTO MachineControls values (?, ?, ?, ?, ?, ?, ?)'
     MC_DELETE_QUERY = \
         'DELETE FROM MachineControls WHERE mac = ?'
     MC_TABLE_NAME = 'MachineControls'
     MC_MAC_COL = 0
     MC_IP_COL = 1
     MC_PROFILE_COL = 2
-    MC_IS_SHAPING_COL = 3
-    MC_ONLINE_COL = 4
-    MC_LASTTIME_COL = 5
+    MC_IS_CAPTURING_COL = 3
+    MC_IS_SHAPING_COL = 4
+    MC_ONLINE_COL = 5
+    MC_LASTTIME_COL = 6
 
     PROFILE_CREATE_QUERY = \
         'CREATE TABLE IF NOT EXISTS NetworkProfiles('\
@@ -60,6 +61,7 @@ class SQLiteManager(object):
                     'mac': result[SQLiteManager.MC_MAC_COL],
                     'ip': result[SQLiteManager.MC_IP_COL],
                     'profile_name': result[SQLiteManager.MC_PROFILE_COL],
+                    'is_capturing': result[SQLiteManager.MC_IS_CAPTURING_COL],
                     'is_shaping': result[SQLiteManager.MC_IS_SHAPING_COL],
                     'online': result[SQLiteManager.MC_ONLINE_COL],
                     'last_time': result[SQLiteManager.MC_LASTTIME_COL]
@@ -67,11 +69,11 @@ class SQLiteManager(object):
             )
         return shapings
 
-    def add_mcontrol(self, mac, ip, profile_name, is_shaping, online, last_update_time):
+    def add_mcontrol(self, mac, ip, profile_name, is_capturing, is_shaping, online, last_update_time):
         with self._get_conn() as conn:
             conn.execute(
                 SQLiteManager.MC_INSERT_WITHTIME_QUERY,
-                (mac, ip, profile_name, is_shaping, online, last_update_time)
+                (mac, ip, profile_name, is_capturing, is_shaping, online, last_update_time)
             )
         conn.close()
 
