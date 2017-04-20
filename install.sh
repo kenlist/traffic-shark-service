@@ -3,6 +3,8 @@
 packages=(
   "pyroute2"
   "thrift"
+  "scapy"
+  "sparts"
 )
 
 packages_str=${packages[@]}

@@ -6,6 +6,7 @@ import socket
 import subprocess
 import shlex
 import time
+import threading
 from subprocess import Popen
 from functools import wraps
 from sqlite3 import OperationalError
@@ -25,6 +26,7 @@ from traffic_shark_thrift.ttypes import Profile, MachineControl, MachineControlS
 
 from tsd.idmanager import IdManager
 from tsd.TsdDBQueueTask import TsdDBQueueTask
+from tsd.TsdScapyTask import TsdScapyTask
 
 def from_module_import_class(modulename, classname):
     klass = getattr(
@@ -68,7 +70,7 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
     DEFAULT_BURST_SIZE = 12000
 
     MODULE = TrafficSharkService
-    DEPS = [TsdDBQueueTask]
+    DEPS = [TsdDBQueueTask, TsdScapyTask]
     OPT_PREFIX = 'tsd'
 
     lan_name = option(
@@ -126,6 +128,8 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
         print "[start initTask]"
 
         self.db_task = self.service.tasks.TsdDBQueueTask
+        self.scapy_task = self.service.tasks.TsdScapyTask
+        self.scapy_task.setupIface(self.lan_name)
 
         self.lan = {'name': self.lan_name}
         self.wan = {'name': self.wan_name}
@@ -432,6 +436,8 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
     @address_check
     def startCapture(self, mac, mc):
         self.logger.info("startCapture mac:{0}".format(mac))
+        self.scapy_task.startCapture(self.lan_name, mc['ip'], mac)
+
         mc['is_capturing'] = True
         self._update_mcontrol(mc)
 
@@ -440,16 +446,12 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
     @address_check
     def stopCapture(self, mac, mc):
         self.logger.info("stopCapture mac:{0}".format(mac))
+        self.scapy_task.stopCapture(self.lan_name, mc['ip'], mac)
+
         mc['is_capturing'] = False
         self._update_mcontrol(mc)
 
         return TrafficControlRc(code=ReturnCode.OK)
-
-
-
-
-
-
 
 
 
