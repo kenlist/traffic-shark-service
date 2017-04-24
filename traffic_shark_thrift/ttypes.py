@@ -26,6 +26,7 @@ class ReturnCode:
   UNKNOWN_NETEM_ERROR = 6
   NETLINK_FW_ERROR = 7
   UNKNOWN_FW_ERROR = 8
+  CAPTURE_NOT_READY = 9
 
   _VALUES_TO_NAMES = {
     0: "OK",
@@ -37,6 +38,7 @@ class ReturnCode:
     6: "UNKNOWN_NETEM_ERROR",
     7: "NETLINK_FW_ERROR",
     8: "UNKNOWN_FW_ERROR",
+    9: "CAPTURE_NOT_READY",
   }
 
   _NAMES_TO_VALUES = {
@@ -49,6 +51,7 @@ class ReturnCode:
     "UNKNOWN_NETEM_ERROR": 6,
     "NETLINK_FW_ERROR": 7,
     "UNKNOWN_FW_ERROR": 8,
+    "CAPTURE_NOT_READY": 9,
   }
 
 

@@ -28,6 +28,8 @@ from tsd.idmanager import IdManager
 from tsd.TsdDBQueueTask import TsdDBQueueTask
 from tsd.TsdScapyTask import TsdScapyTask
 
+from tsd.packet_to_json import PacketsToJson
+
 def from_module_import_class(modulename, classname):
     klass = getattr(
         __import__(modulename, globals(), locals(), [classname], -1),
@@ -432,6 +434,23 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
         self.db_task.queue.put((
             (mc['mac'], mc.get('ip'), mc.get('profile_name'), mc['is_capturing'], mc['is_shaping'], mc['online'], mc["last_update_time"]),
             'add_mcontrol'))
+
+    @address_check
+    def getCapturePackets(self, mac, mc):
+        self.logger.info("getCapturePackets mac:{0}".format(mac))
+
+        pkts = self.scapy_task.getCapturePackets(mc['ip'])
+        if pkts is None:
+            return TrafficControlRc(
+                code=ReturnCode.CAPTURE_NOT_READY,
+                message="capture is not ready")
+
+        packet_dump = PacketsToJson(pkts)
+        # self.logger.info("packets: {}".format(packet_dump))
+
+        return TrafficControlRc(
+                code=ReturnCode.OK,
+                message=packet_dump)
 
     @address_check
     def startCapture(self, mac, mc):

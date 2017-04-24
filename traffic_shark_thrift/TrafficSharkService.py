@@ -59,6 +59,13 @@ class Iface:
     """
     pass
 
+  def getCapturePackets(self, mac):
+    """
+    Parameters:
+     - mac
+    """
+    pass
+
   def startCapture(self, mac):
     """
     Parameters:
@@ -293,6 +300,38 @@ class Client(Iface):
       raise result.failure
     raise TApplicationException(TApplicationException.MISSING_RESULT, "removeProfile failed: unknown result");
 
+  def getCapturePackets(self, mac):
+    """
+    Parameters:
+     - mac
+    """
+    self.send_getCapturePackets(mac)
+    return self.recv_getCapturePackets()
+
+  def send_getCapturePackets(self, mac):
+    self._oprot.writeMessageBegin('getCapturePackets', TMessageType.CALL, self._seqid)
+    args = getCapturePackets_args()
+    args.mac = mac
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_getCapturePackets(self):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = getCapturePackets_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    if result.failure is not None:
+      raise result.failure
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "getCapturePackets failed: unknown result");
+
   def startCapture(self, mac):
     """
     Parameters:
@@ -369,6 +408,7 @@ class Processor(Iface, TProcessor):
     self._processMap["getProfiles"] = Processor.process_getProfiles
     self._processMap["addProfile"] = Processor.process_addProfile
     self._processMap["removeProfile"] = Processor.process_removeProfile
+    self._processMap["getCapturePackets"] = Processor.process_getCapturePackets
     self._processMap["startCapture"] = Processor.process_startCapture
     self._processMap["stopCapture"] = Processor.process_stopCapture
 
@@ -478,6 +518,20 @@ class Processor(Iface, TProcessor):
     except TrafficControlException, failure:
       result.failure = failure
     oprot.writeMessageBegin("removeProfile", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_getCapturePackets(self, seqid, iprot, oprot):
+    args = getCapturePackets_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = getCapturePackets_result()
+    try:
+      result.success = self._handler.getCapturePackets(args.mac)
+    except TrafficControlException, failure:
+      result.failure = failure
+    oprot.writeMessageBegin("getCapturePackets", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -1387,6 +1441,139 @@ class removeProfile_result:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('removeProfile_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.STRUCT, 0)
+      self.success.write(oprot)
+      oprot.writeFieldEnd()
+    if self.failure is not None:
+      oprot.writeFieldBegin('failure', TType.STRUCT, 1)
+      self.failure.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getCapturePackets_args:
+  """
+  Attributes:
+   - mac
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'mac', None, None, ), # 1
+  )
+
+  def __init__(self, mac=None,):
+    self.mac = mac
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.mac = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getCapturePackets_args')
+    if self.mac is not None:
+      oprot.writeFieldBegin('mac', TType.STRING, 1)
+      oprot.writeString(self.mac)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getCapturePackets_result:
+  """
+  Attributes:
+   - success
+   - failure
+  """
+
+  thrift_spec = (
+    (0, TType.STRUCT, 'success', (TrafficControlRc, TrafficControlRc.thrift_spec), None, ), # 0
+    (1, TType.STRUCT, 'failure', (TrafficControlException, TrafficControlException.thrift_spec), None, ), # 1
+  )
+
+  def __init__(self, success=None, failure=None,):
+    self.success = success
+    self.failure = failure
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.STRUCT:
+          self.success = TrafficControlRc()
+          self.success.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 1:
+        if ftype == TType.STRUCT:
+          self.failure = TrafficControlException()
+          self.failure.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getCapturePackets_result')
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.STRUCT, 0)
       self.success.write(oprot)
