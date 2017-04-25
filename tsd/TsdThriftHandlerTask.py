@@ -254,6 +254,16 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
         self.logger.info('Request addProfile for name {0}'.format(profile.name))
         self.db_task.queue.put(((profile.name, profile.tc_setting), 'add_profile'))
         self._profiles[profile.name] = profile.tc_setting
+
+        mac_list = []
+        for mac in self._machine_shapings:
+            mshaping = self._machine_shapings[mac]
+            if mshaping['profile_name'] == profile.name:
+                mac_list.append(mac)
+
+        for mac in mac_list:
+            self.shapeMachine(mac)  # reshape
+
         return TrafficControlRc(code=ReturnCode.OK)
 
     def removeProfile(self, name):
@@ -392,6 +402,7 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
             'id': new_id,
             'ip': mc['ip'],
             'tc': setting,
+            'profile_name': mc.get('profile_name')
         }
 
         # do shape
