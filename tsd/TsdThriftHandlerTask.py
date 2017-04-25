@@ -268,8 +268,24 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
 
     def removeProfile(self, name):
         self.logger.info('Request removeProfile for name {0}'.format(name))
-        self.db_task.queue.put((name), 'remove_profile')
+        self.db_task.queue.put(((name), 'remove_profile'))
         del self._profiles[name]
+
+        mac_list = []
+        for mac in self._machine_shapings:
+            mshaping = self._machine_shapings[mac]
+            if mshaping['profile_name'] == name:
+                mac_list.append(mac)
+
+        for mac in mac_list:
+            self.unshapeMachine(mac)  # unshape
+
+        for mac in self._machine_controls:
+            mc = self._machine_controls[mac]
+            if mc.get('profile_name') and mc['profile_name'] == name:
+                del mc['profile_name']
+                self._update_mcontrol(mc)
+
         return TrafficControlRc(code=ReturnCode.OK)
 
     # Machine Controls
