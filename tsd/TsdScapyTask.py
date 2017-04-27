@@ -39,7 +39,7 @@ class TsdScapyTask(QueueTask):
 
     def startCapture(self, iface, capture_filter, ip, mac):
         filter_str = "host " + ip
-        if capture_filter is not None:
+        if capture_filter is not None and capture_filter != "":
             filter_str = "(host " + ip + " and " + capture_filter + ")"
         filter_str = "(udp and port 3232 and host " + ip + ") or " + filter_str
 
