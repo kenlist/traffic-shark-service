@@ -752,6 +752,7 @@ class MachineControlState:
    - is_capturing
    - is_shaping
    - online
+   - capture_filter
    - last_update_time
   """
 
@@ -762,15 +763,17 @@ class MachineControlState:
     (3, TType.BOOL, 'is_capturing', None, None, ), # 3
     (4, TType.BOOL, 'is_shaping', None, None, ), # 4
     (5, TType.BOOL, 'online', None, None, ), # 5
-    (6, TType.I64, 'last_update_time', None, None, ), # 6
+    (6, TType.STRING, 'capture_filter', None, None, ), # 6
+    (7, TType.I64, 'last_update_time', None, None, ), # 7
   )
 
-  def __init__(self, ip=None, profile_name=None, is_capturing=None, is_shaping=None, online=None, last_update_time=None,):
+  def __init__(self, ip=None, profile_name=None, is_capturing=None, is_shaping=None, online=None, capture_filter=None, last_update_time=None,):
     self.ip = ip
     self.profile_name = profile_name
     self.is_capturing = is_capturing
     self.is_shaping = is_shaping
     self.online = online
+    self.capture_filter = capture_filter
     self.last_update_time = last_update_time
 
   def read(self, iprot):
@@ -808,6 +811,11 @@ class MachineControlState:
         else:
           iprot.skip(ftype)
       elif fid == 6:
+        if ftype == TType.STRING:
+          self.capture_filter = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 7:
         if ftype == TType.I64:
           self.last_update_time = iprot.readI64();
         else:
@@ -842,8 +850,12 @@ class MachineControlState:
       oprot.writeFieldBegin('online', TType.BOOL, 5)
       oprot.writeBool(self.online)
       oprot.writeFieldEnd()
+    if self.capture_filter is not None:
+      oprot.writeFieldBegin('capture_filter', TType.STRING, 6)
+      oprot.writeString(self.capture_filter)
+      oprot.writeFieldEnd()
     if self.last_update_time is not None:
-      oprot.writeFieldBegin('last_update_time', TType.I64, 6)
+      oprot.writeFieldBegin('last_update_time', TType.I64, 7)
       oprot.writeI64(self.last_update_time)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()

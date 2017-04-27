@@ -66,10 +66,11 @@ class Iface:
     """
     pass
 
-  def startCapture(self, mac):
+  def startCapture(self, mac, capture_filter):
     """
     Parameters:
      - mac
+     - capture_filter
     """
     pass
 
@@ -332,18 +333,20 @@ class Client(Iface):
       raise result.failure
     raise TApplicationException(TApplicationException.MISSING_RESULT, "getCapturePackets failed: unknown result");
 
-  def startCapture(self, mac):
+  def startCapture(self, mac, capture_filter):
     """
     Parameters:
      - mac
+     - capture_filter
     """
-    self.send_startCapture(mac)
+    self.send_startCapture(mac, capture_filter)
     return self.recv_startCapture()
 
-  def send_startCapture(self, mac):
+  def send_startCapture(self, mac, capture_filter):
     self._oprot.writeMessageBegin('startCapture', TMessageType.CALL, self._seqid)
     args = startCapture_args()
     args.mac = mac
+    args.capture_filter = capture_filter
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
@@ -542,7 +545,7 @@ class Processor(Iface, TProcessor):
     iprot.readMessageEnd()
     result = startCapture_result()
     try:
-      result.success = self._handler.startCapture(args.mac)
+      result.success = self._handler.startCapture(args.mac, args.capture_filter)
     except TrafficControlException, failure:
       result.failure = failure
     oprot.writeMessageBegin("startCapture", TMessageType.REPLY, seqid)
@@ -1604,15 +1607,18 @@ class startCapture_args:
   """
   Attributes:
    - mac
+   - capture_filter
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRING, 'mac', None, None, ), # 1
+    (2, TType.STRING, 'capture_filter', None, None, ), # 2
   )
 
-  def __init__(self, mac=None,):
+  def __init__(self, mac=None, capture_filter=None,):
     self.mac = mac
+    self.capture_filter = capture_filter
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1628,6 +1634,11 @@ class startCapture_args:
           self.mac = iprot.readString();
         else:
           iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.capture_filter = iprot.readString();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1641,6 +1652,10 @@ class startCapture_args:
     if self.mac is not None:
       oprot.writeFieldBegin('mac', TType.STRING, 1)
       oprot.writeString(self.mac)
+      oprot.writeFieldEnd()
+    if self.capture_filter is not None:
+      oprot.writeFieldBegin('capture_filter', TType.STRING, 2)
+      oprot.writeString(self.capture_filter)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

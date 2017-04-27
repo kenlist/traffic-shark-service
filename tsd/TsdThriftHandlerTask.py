@@ -47,7 +47,7 @@ class TsdNBServerTask(NBServerTask):
 
 def address_check(method):
     @wraps(method)
-    def decorator(self, mac):
+    def decorator(self, mac, *args, **kwargs):
         if not self._machine_controls.get(mac):
             # can not shape while not exist
             return TrafficControlRc(
@@ -62,7 +62,7 @@ def address_check(method):
             return TrafficControlRc(
                 code=ReturnCode.INVALID_ADDRESS,
                 message="Invalid IP {0} for mac:{1}".format(mc['ip'], mac))
-        return method(self, mac, mc)
+        return method(self, mac, mc, *args)
     return decorator
 
 class TsdThriftHandlerTask(ThriftHandlerTask):
@@ -221,6 +221,7 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
                 'is_capturing': result['is_capturing'],
                 'is_shaping': result['is_shaping'],
                 'online': result['online'],
+                'capture_filter': result['capture_filter'],
                 'last_update_time': result['last_time']
             }
 
@@ -229,7 +230,7 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
             if mc['is_shaping']:
                 self.shapeMachine(mac)
             if mc['is_capturing']:
-                self.startCapture(mac)
+                self.startCapture(mac, mc.get("capture_filter"))
 
     def run_cmd(self, cmd):
         self.logger.info("Running {}".format(cmd))
@@ -307,6 +308,7 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
                 is_capturing=state.get('is_capturing'),
                 is_shaping=state.get('is_shaping'),
                 online=state.get('online'),
+                capture_filter=state.get('capture_filter'),
                 last_update_time=state.get('last_update_time'),
             )
         )
@@ -459,7 +461,7 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
 
     def _update_mcontrol(self, mc):
         self.db_task.queue.put((
-            (mc['mac'], mc.get('ip'), mc.get('profile_name'), mc['is_capturing'], mc['is_shaping'], mc['online'], mc["last_update_time"]),
+            (mc['mac'], mc.get('ip'), mc.get('profile_name'), mc['is_capturing'], mc['is_shaping'], mc['online'], mc.get('capture_filter'), mc["last_update_time"]),
             'add_mcontrol'))
 
     @address_check
@@ -480,11 +482,21 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
                 message=packet_dump)
 
     @address_check
-    def startCapture(self, mac, mc):
-        self.logger.info("startCapture mac:{0}".format(mac))
-        self.scapy_task.startCapture(self.lan_name, mc['ip'], mac)
+    def startCapture(self, mac, mc, capture_filter):
+        self.logger.info("startCapture mac:{0} filter:{1}".format(mac, capture_filter))
 
+        try:
+            self.scapy_task.startCapture(self.lan_name, capture_filter, mc['ip'], mac)
+        except Exception as e:
+            self.logger.info("startCapture exception:{0}".format(str(e)))
+            mc['is_capturing'] = False
+            mc['capture_filter'] = None
+            self._update_mcontrol(mc)
+            return TrafficControlRc(
+                code=ReturnCode.CAPTURE_NOT_READY,
+                message=str(e))
         mc['is_capturing'] = True
+        mc['capture_filter'] = capture_filter
         self._update_mcontrol(mc)
 
         return TrafficControlRc(code=ReturnCode.OK)

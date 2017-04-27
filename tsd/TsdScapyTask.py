@@ -37,8 +37,15 @@ class TsdScapyTask(QueueTask):
     def setupIface(self, iface):
         self.iface = iface
 
-    def startCapture(self, iface, ip, mac):
-        self.queue.put((iface, "host " + ip, ip, mac))
+    def startCapture(self, iface, capture_filter, ip, mac):
+        filter_str = "host " + ip
+        if capture_filter is not None:
+            filter_str = "(host " + ip + " and " + capture_filter + ")"
+        filter_str = "(udp and port 3232 and host " + ip + ") or " + filter_str
+
+        self.logger.info('Capture start with filter:{0}'.format(filter_str))
+        sniff(iface=iface, filter=filter_str, count=0, timeout=0)
+        self.queue.put((iface, filter_str , ip, mac))
 
     def stopCapture(self, iface, ip, mac):
         stop_packet = Ether(dst=mac)/IP(dst=ip)/UDP(dport=3232,sport=3232)/TsdScapyStopPacket(tsd=3232)
