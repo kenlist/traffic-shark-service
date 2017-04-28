@@ -40,6 +40,7 @@ def pkt_to_json(pkt):
               # No custom fields
                 pass
             results[layer_name]['_len_'] = layer_len
+            results[layer_name]['_idx_'] = index
     except IndexError:
         # Package finish -> do nothing
         pass
