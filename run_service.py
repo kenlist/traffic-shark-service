@@ -10,9 +10,9 @@ runner.run()
 # from scapy.all import *
 
 # def _capture_pkt_callback(pkt):
-#     pkt.show()
+#     print pkt.time
 
-# sniff(iface="wlan0", filter="host 172.24.1.92", count=1)
+# sniff(iface="wlan0", filter="host 172.24.1.132", prn=_capture_pkt_callback, count=3)
 
 # from scapy.all import *
 # pkts = sniff(iface="wlan0", filter="host 172.24.1.117", count=1)

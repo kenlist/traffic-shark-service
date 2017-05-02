@@ -85,11 +85,11 @@ class TsdScapyTask(QueueTask):
             if raw_pkt.haslayer(TsdScapyStopPacket) and raw_pkt[TsdScapyStopPacket].tsd == 3232:
                 return
             now = int(round(time.time() * 1000))
-            pkt = {
-                'time': now,
-                'raw_pkt': raw_pkt
-            }
-            thread_pkts_queue.append(pkt)
+            # pkt = {
+            #     'time': now,
+            #     'raw_pkt': raw_pkt
+            # }
+            thread_pkts_queue.append(raw_pkt)
             internal_capture_pkts()
 
         def internal_stop(pkt):

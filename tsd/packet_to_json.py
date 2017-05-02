@@ -3,9 +3,9 @@ from collections import defaultdict
 
 def pkt_to_json(pkt):
     results = defaultdict(dict)
-    results['_time_'] = pkt['time']
+    results['_time_'] = pkt.time * 1000
 
-    raw_pkt = pkt['raw_pkt']
+    raw_pkt = pkt
 
     try:
         for index in range(50):

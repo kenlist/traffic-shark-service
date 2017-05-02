@@ -15,6 +15,8 @@ from sparts.tasks.thrift import NBServerTask
 from sparts.tasks.thrift import ThriftHandlerTask
 from sparts.sparts import option
 
+from scapy.all import *
+
 from traffic_shark_thrift import TrafficSharkService
 
 # TrafficShark thrift files
@@ -70,6 +72,7 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
     DEFAULT_WAN = 'eth0'
     DEFAULT_IPTABLES = '/sbin/iptables'
     DEFAULT_BURST_SIZE = 12000
+    DEFAULT_PCAP_PATH = '/tmp/pcaps/'
 
     MODULE = TrafficSharkService
     DEPS = [TsdDBQueueTask, TsdScapyTask]
@@ -511,6 +514,24 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
 
         return TrafficControlRc(code=ReturnCode.OK)
 
+    @address_check
+    def exportPcap(self, mac, mc):
+        self.logger.info("exportPcap mac:{0}".format(mac))
+
+        pkts = self.scapy_task.getCapturePackets(mc['ip'])
+        if pkts is None:
+            return TrafficControlRc(
+                code=ReturnCode.CAPTURE_NOT_READY,
+                message="capture is not ready")
+
+        if not os.path.exists(self.DEFAULT_PCAP_PATH):
+            os.makedirs(self.DEFAULT_PCAP_PATH)
+
+        pcap_path = self.DEFAULT_PCAP_PATH + "[" + mac + "].pcap"
+        wrpcap(pcap_path, pkts)
+
+        return TrafficControlRc(
+                code=ReturnCode.OK)
 
 
 
