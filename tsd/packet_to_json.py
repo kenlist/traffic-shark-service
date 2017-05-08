@@ -1,5 +1,10 @@
 import json
+import struct
 from collections import defaultdict
+
+def bin_to_hex(bin_str):
+    n = struct.unpack('<' + str(len(bin_str)) + 'B', bin_str)
+    return ''.join(['/' + hex(v)[1:] for v in n])
 
 def pkt_to_json(pkt):
     results = defaultdict(dict)
@@ -23,7 +28,7 @@ def pkt_to_json(pkt):
                 if y and not isinstance(y, (str, int, long, float, list, dict)):
                     tmp_t[x].update(pkt_to_json(y))
                 else:
-                    tmp_t[x] = y
+                    tmp_t[x] = repr(y)
             results[layer_name] = tmp_t
 
             try:
@@ -34,7 +39,7 @@ def pkt_to_json(pkt):
                     elif x == 'load':
                         continue    # not support raw load now.
                     else:
-                        tmp_t[x] = y
+                        tmp_t[x] = repr(y)
                 results[layer_name] = tmp_t
             except KeyError:
               # No custom fields
@@ -45,7 +50,7 @@ def pkt_to_json(pkt):
         # Package finish -> do nothing
         pass
 
-    return json.dumps(results, ensure_ascii=False)
+    return json.dumps(results)
 
 def PacketsToJson(pkts):
     json_str = '['
@@ -55,6 +60,7 @@ def PacketsToJson(pkts):
         if i != pkts_len - 1:
             json_str += ','
     json_str += ']'
+    # print json_str
     return json_str
 
 
