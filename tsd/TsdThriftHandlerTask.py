@@ -7,6 +7,7 @@ import subprocess
 import shlex
 import time
 import threading
+import re
 from subprocess import Popen
 from functools import wraps
 from sqlite3 import OperationalError
@@ -16,6 +17,7 @@ from sparts.tasks.thrift import ThriftHandlerTask
 from sparts.sparts import option
 
 from scapy.all import *
+from scapy.contrib.coap import *
 
 from traffic_shark_thrift import TrafficSharkService
 
@@ -112,6 +114,17 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
 
     @staticmethod
     def factory():
+        #load protocols
+        regex_filter = re.compile('^[a-z|A-Z]+\.py$')
+        files = os.listdir('tsd/protocols')
+        for file in files:
+            if regex_filter.match(file) is not None:
+                try:
+                    __import__('tsd.protocols.coap')
+                except ImportError:
+                    raise
+
+        # load backends
         os_name = os.uname()[0]
         klass = 'Tsd{0}Shaper'.format(os_name)
 
