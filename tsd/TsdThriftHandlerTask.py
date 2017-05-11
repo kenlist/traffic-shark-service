@@ -120,7 +120,7 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
         for file in files:
             if regex_filter.match(file) is not None:
                 try:
-                    __import__('tsd.protocols.coap')
+                    __import__('tsd.protocols.' + file[:-3])
                 except ImportError:
                     raise
 

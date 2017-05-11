@@ -34,12 +34,20 @@ def pkt_to_json(pkt):
             try:
                 tmp_t = {}
                 for x, y in layer.fields.items():
-                    if y and not isinstance(y, (str, int, long, float, list, dict)):
+                    if y and not isinstance(y, (unicode, str, int, long, float, list, dict)):
                         tmp_t[x].update(pkt_to_json(y))
+                    elif y is None:
+                        continue
                     elif x == 'load':
-                        continue    # not support raw load now.
+                        if len(y) > 200:
+                            continue    # not support big raw load now.
+                        else:
+                            tmp_t[x] = repr(y)
+                    elif isinstance(y, unicode):
+                        tmp_t[x] = y
                     else:
                         tmp_t[x] = repr(y)
+
                 results[layer_name] = tmp_t
             except KeyError:
               # No custom fields
@@ -48,6 +56,7 @@ def pkt_to_json(pkt):
             results[layer_name]['_idx_'] = index
     except IndexError:
         # Package finish -> do nothing
+        # raise
         pass
 
     return json.dumps(results)

@@ -108,7 +108,7 @@ class TsdScapyTask(QueueTask):
 
     def _capture_pkt_callback(self, ip, pkt):
         if self.lock.acquire(False):
-            # pkt["raw_pkt"].show()
+            # pkt.show()
             if self.ip_pkts.get(ip) is not None:
                 self.ip_pkts[ip].append(pkt)
                 if len(self.ip_pkts[ip]) > self.max_ip_pkts_count:
