@@ -115,7 +115,7 @@ class TsdThriftHandlerTask(ThriftHandlerTask):
     @staticmethod
     def factory():
         #load protocols
-        regex_filter = re.compile('^[a-z|A-Z]+\.py$')
+        regex_filter = re.compile('^[a-z|A-Z|_|-]+\.py$')
         files = os.listdir('tsd/protocols')
         for file in files:
             if regex_filter.match(file) is not None:

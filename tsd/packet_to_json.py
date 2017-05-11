@@ -23,13 +23,13 @@ def pkt_to_json(pkt):
             layer_name = layer_tmp_name[layer_start_pos:-2].lower()
 
             # Get the layer info
-            tmp_t = {}
-            for x, y in layer.default_fields.items():
-                if y and not isinstance(y, (str, int, long, float, list, dict)):
-                    tmp_t[x].update(pkt_to_json(y))
-                else:
-                    tmp_t[x] = repr(y)
-            results[layer_name] = tmp_t
+            # tmp_t = {}
+            # for x, y in layer.default_fields.items():
+            #     if y and not isinstance(y, (str, int, long, float, list, dict)):
+            #         tmp_t[x].update(pkt_to_json(y))
+            #     else:
+            #         tmp_t[x] = repr(y)
+            # results[layer_name] = tmp_t
 
             try:
                 tmp_t = {}
@@ -45,6 +45,13 @@ def pkt_to_json(pkt):
                             tmp_t[x] = repr(y)
                     elif isinstance(y, unicode):
                         tmp_t[x] = y
+                    elif isinstance(y, str):
+                        try:
+                            y.decode('utf-8')
+                            tmp_t[x] = y
+                        except UnicodeDecodeError:
+                            tmp_t[x] = repr(y)
+                            pass
                     else:
                         tmp_t[x] = repr(y)
 
